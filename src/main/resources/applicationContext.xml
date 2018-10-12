@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<beans>
+    <bean name="student" class="com.simple.framework.springioc.entity.Student" >
+        <property name="name" value="123"></property>
+    </bean>
+
+    <bean name="teacher" class="com.simple.framework.springioc.entity.Teacher">
+        <property name="student" ref="student"></property>
+    </bean>
+    <bean name="person" class="com.simple.framework.springioc.entity.Person" scope="prototype">
+        <property name="teacher" ref="teacher"></property>
+        <property name="student" ref="student"></property>
+    </bean>
+
+</beans>
