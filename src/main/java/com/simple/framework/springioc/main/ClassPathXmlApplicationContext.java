@@ -1,8 +1,11 @@
 package com.simple.framework.springioc.main;
 
+import com.simple.framework.springioc.annotation.Autowired;
 import com.simple.framework.springioc.config.Bean;
 import com.simple.framework.springioc.config.Property;
 import com.simple.framework.springioc.config.parse.ConfigManager;
+import com.simple.framework.springioc.utils.StringUtils;
+import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -23,6 +26,7 @@ public class ClassPathXmlApplicationContext implements BeanFactory {
     public ClassPathXmlApplicationContext(String path) {
         // 1.读取配置文件得到需要初始化的Bean信息
         map = ConfigManager.getConfig(path);
+
         for (Entry<String, Bean> en : map.entrySet()) {
             String beanName = en.getKey();
             Bean bean = en.getValue();
@@ -108,6 +112,35 @@ public class ClassPathXmlApplicationContext implements BeanFactory {
 
             }
 
+        }
+
+        //有@Autowired注解
+        Field[] declaredFields = beanObj.getClass().getDeclaredFields();
+        for (Field field : declaredFields) {
+            if (field.isAnnotationPresent(Autowired.class)) {
+                Autowired autowied = field.getAnnotation(Autowired.class);
+                String beanName = autowied.value().trim();
+                if ("".equals(beanName.trim())) {
+                    beanName = field.getType().getName();
+                    beanName = StringUtils.lowerFirstCase(beanName.substring(beanName.lastIndexOf(".") + 1));
+                }
+                field.setAccessible(true);
+                try {
+                    Object existObject = context.get(beanName);
+                    if (existObject == null) {
+                        existObject = createBean(map.get(beanName));
+                        // 放置到context容器中
+                        // 只有当scope="singleton"时才往容器中放
+                        if (map.get(beanName).getScope().equals("singleton")) {
+                            context.put(beanName, existObject);
+                        }
+                    }
+                    field.set(beanObj, existObject);
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                    throw new RuntimeException("您的bean的注解" + beanName + "注解注入失败");
+                }
+            }
         }
 
         return beanObj;

@@ -3,6 +3,7 @@ package com.simple.framework.springioc.config.parse;
 import com.simple.framework.springioc.config.Bean;
 import com.simple.framework.springioc.config.Property;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -68,12 +69,12 @@ public class ConfigManager {
                 List<Element> children = bean.elements("property");
 
                 // 4.3将属性name/value/ref分装到类Property类中
-                if(children!=null){
+                if (children != null) {
                     for (Element child : children) {
                         Property prop = new Property();
-                        String pName=child.attributeValue("name");
-                        String pValue=child.attributeValue("value");
-                        String pRef=child.attributeValue("ref");
+                        String pName = child.attributeValue("name");
+                        String pValue = child.attributeValue("value");
+                        String pRef = child.attributeValue("ref");
                         prop.setName(pName);
                         prop.setRef(pRef);
                         prop.setValue(pValue);
@@ -87,11 +88,36 @@ public class ConfigManager {
 
             }
 
+        }
 
+        //处理自动注解,是否自动注入
+        // 1.定义xpath表达式,取出所有Bean元素
+        String autoScanner = "//annotation-config";
+        String scannerPackage = "//component-scan";
+        //2.对Bean元素继续遍历
+        List<Element> scanner = doc.selectNodes(autoScanner);
+        List<Element> scannerPackagelist = doc.selectNodes(scannerPackage);
+        List<String> scannerlist = new ArrayList<>();
+
+        for (Element element : scannerPackagelist) {
+            scannerlist.add(element.attributeValue("base-package"));
+        }
+
+        if (isAutoScanner(scanner)) {
+            Map<String, Bean> config = new AnnotationManager().getAnnotationConfig(scannerlist);
+            map.putAll(config);
         }
 
         return map;
 
     }
+
+    private static boolean isAutoScanner(List<Element> list) {
+        if (list != null && list.size() > 0) {
+            return true;
+        }
+        return false;
+    }
+
 
 }
